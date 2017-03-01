@@ -1,0 +1,307 @@
+<html>
+<!—- creates the canvas —->
+<canvas id = 'gameCanvas' width = '1850' height = '925'></canvas>
+
+<!—- removes the scroll bar and padding on left and top edges —->
+<style type="text/css">
+canvas {
+	display:block;
+}
+body {
+	overflow:hidden;
+	margin:0;
+}
+</style>
+
+<!—- start of Game Code —->
+<script>
+// ———————— Variables ————————
+
+// Snake Variables
+const SNAKE_SIZE = 20;
+const SPACING = 2;
+var direction = 2;
+var snakePos = [{x: 200, y:200}];
+var length = 1;
+
+// Game Variables
+const INCREASE = 5;
+var highScore = 0;
+var paused = true;
+var check = false;
+var frameCheck = false;
+var borderBottom = SNAKE_SIZE * 2;
+var borderRight = SNAKE_SIZE * 2;
+var borderLeft = SNAKE_SIZE;
+
+// Food Variables
+var foodPos = {x: 200, y: 200, status: 0};
+var randx = 0;
+var randy = 0;
+var leftOverX = 0;
+var leftOverY = 0;
+
+// ———————— Functions ————————
+
+// function that is ran when the window and code fully load
+window.onload = function() {
+	// creates canvas and and sets context to 2d
+	canvas = document.getElementById('gameCanvas');
+	ctx = canvas.getContext('2d');
+	
+	// sets the canvas width and height equal to the inner width and inner height of window
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+	
+	// if conditions to set right and bottom border to make snake align with edges
+	if (canvas.height % SNAKE_SIZE != 0) {
+		borderBottom = (SNAKE_SIZE * 2) + canvas.height % SNAKE_SIZE;
+	}
+	if (canvas.width % SNAKE_SIZE != 0) {
+		borderRight = (SNAKE_SIZE * 2) + canvas.width % SNAKE_SIZE;
+	}
+	
+	// variable to set the frames per second
+	const FRAMES_PER_SECOND = 15;
+	
+	// interval function that runs the game functions frames_per_second times per second
+	setInterval( function() {
+		drawBackground();
+		drawSnake();
+		drawFood();
+		eatCheck();
+
+		// if the game is not paused move the snake else display the oppropriate pause message, pause message displayed here to print over snake
+		if (paused == false) {
+			moveSnake();
+		} else {
+			ctx.fillStyle = 'white';
+			if (length == 1 && highScore == 0 && check == false) {
+				ctx.fillText("Hit space to start the game!", canvas.width / 2, canvas.height / 2);
+			} else if (highScore > 0 && length == 1 && check == false) {
+				ctx.fillText("OOPS you lose!! Hit space to restart the game!", canvas.width / 2, canvas.height / 2);
+			} else if (check) {
+				ctx.fillText("The game is Paused. Hit space to keep going!", canvas.width / 2, canvas.height / 2);
+			}
+		}
+
+		// sets framecheck to false because we are moving to the next frame, this is in order to stop someone from giving to commands in the same frame
+		frameCheck = false;
+	}, 1000 / FRAMES_PER_SECOND);
+	
+	// adds the key event listener that allows the user to input the directional commands
+	window.addEventListener('keydown', keyPressed, false);
+}
+
+// function that is ran when a key is pressed
+function keyPressed(e) {
+	// checks to make sure the game is not paused
+	if (paused == false && frameCheck == false) {
+		// checks if key pressed is either “W” or “upArrow”, if so and direction is not going down, then sets the direction to up
+		if (e.keyCode == "87" || e.keyCode == "38") {
+			if (direction != 3) {
+				direction = 1;
+			}
+		// checks if key pressed is either “D” or “rightArrow”, if so and direction is not going left, then sets the direction to right
+		} else if (e.keyCode == "68" || e.keyCode == "39") {
+			if (direction != 4) {
+				direction = 2;
+			}
+		// checks if key pressed is either “S” or “downArrow”, if so and direction is not going up, then sets the direction to down
+		} else if (e.keyCode == "83" || e.keyCode == "40") {
+			if (direction != 1) {
+				direction = 3;
+			}
+		// checks if key pressed is either “A” or “leftArrow”, if so and direction is not going right, then sets the direction to left
+		} else if (e.keyCode == "65" || e.keyCode == "37") {
+			if (direction != 2) {
+				direction = 4;
+			}
+		}
+		// sets frame check to true so no other direction commands can be given for this frame
+		frameCheck = true;
+	}	
+	// if key pressed is space then it will either unpause or pause the game depending on its current state, variable check is to make sure the right message is displayed
+	if (e.keyCode == "32") {
+		if (paused) {
+			paused = false;
+			check = false;
+		} else {
+			check = true;
+			paused = true;
+		}
+	}
+}
+
+// draws all backGorund content: border, playing window, score, highscore, created by, also resets border size when window width and height are changed
+function drawBackground() {
+	// if the window inner width changes while mid game, sets the right border to align with snake and resets the food
+	if (canvas.width < window.innerWidth || window.innerWidth < canvas.width) {
+		canvas.width = window.innerWidth;
+		if (canvas.width % SNAKE_SIZE != 0) {
+			borderRight = (SNAKE_SIZE * 2) + canvas.width % SNAKE_SIZE;
+		} else {
+			borderRight = SNAKE_SIZE * 2;
+		}
+		foodPos.status = 0;
+	}
+	// if the window inner height changes while mid game, sets the bottom border to align with snake and resets the food
+	if (canvas.height < window.innerHeight || window.innerHeight < canvas.height) {
+		canvas.height = window.innerHeight;
+		if (canvas.height % SNAKE_SIZE != 0) {
+			borderBottom = (SNAKE_SIZE * 2) + canvas.height % SNAKE_SIZE;
+		} else {
+			borderBottom = SNAKE_SIZE * 2;
+		}
+		
+		foodPos.status = 0;
+	}
+
+	// draws a blue rectangle the size of the inner window
+	ctx.fillStyle = 'blue';
+	ctx.fillRect(0,0, canvas.width, canvas.height);
+
+	// draws a light blue rectangle the size of the playing area according to borders
+	ctx.fillStyle = '#58D3F7';
+	ctx.fillRect(borderLeft,borderLeft,canvas.width - borderRight - borderLeft, canvas.height - borderBottom - borderLeft);
+	
+	// sets text formatting
+	ctx.textBaseline = 'middle'; 
+	ctx.textAlign = 'center';
+	ctx.font = "20px Georgia";
+	ctx.fillStyle = 'white';
+
+	// displays length or “score” in the middle of bottom border
+	ctx.fillText(length, canvas.width / 2, canvas.height - (borderBottom / 2));
+
+	// displays the highscore 1/4 of the way across the bottom border
+	ctx.fillText(highScore, canvas.width / 4, canvas.height - (borderBottom / 2));
+
+	// displays created by 3/4 of the way across bottom border
+	ctx.fillText("Created by: Hunter Long", canvas.width / 2 + canvas.width / 4, canvas.height - (borderBottom / 2));
+}
+
+// function to draw the snake every frame 
+function drawSnake() {
+	// sets snake color to green
+	ctx.fillStyle = 'green';
+	
+	// for loop to drawn individual block of the snake at the i index, loops through the entire snake
+	for (var i = 0; i < snakePos.length; i++) {
+		ctx.fillRect(snakePos[i].x, snakePos[i].y, SNAKE_SIZE, SNAKE_SIZE);
+
+	}
+	// checks to see if the head of the snake goes beyond one of the 4 borders, if so calls the reset function and sets high score if applicable
+	if (snakePos[0].x + SNAKE_SIZE > canvas.width - borderRight || snakePos[0].x < borderLeft || snakePos[0].y < borderLeft || snakePos[0].y + SNAKE_SIZE > canvas.height - borderBottom ) {
+		if (length > highScore) {
+			highScore = length;
+		}
+		resetGame();
+	}
+	// if snake length is greater than 3, checks to make sure the head of the snake does not cross the body by comparing x’s and y’s of every block to head
+	if (length > 3) {
+		for (var j = 3; j < length; j++) {
+			if (snakePos[0].x == snakePos[j].x && snakePos[0].y == snakePos[j].y) {
+				if (length > highScore) {
+					highScore = length;
+				}
+				resetGame();
+				return;
+			}
+		}
+	}
+}
+
+// function that is called when the player hits themselves or the edge
+function resetGame() {
+	// resets all game conditions to start new game
+	paused = true;
+	foodPos.status = 0;
+	snakePos = [{x: 200, y:200}];
+	direction = 2;
+	length = 1;
+	
+}
+
+// moves the snake depending on current direction
+function moveSnake() {
+	// for loop that starts at the end of the snake and sets the x and y of the i’th block to the i - 1 block, does not include head
+	for (var i = snakePos.length - 1; i > 0; i--) {
+		snakePos[i].x = snakePos[i - 1].x;
+		snakePos[i].y = snakePos[i - 1].y;
+	}
+	// depending on direction that the snake is currently travleing, sets either x or y + or - snake size
+	if (direction == 1) {
+		snakePos[0].y -= SNAKE_SIZE;
+	} else if (direction == 2) {
+		snakePos[0].x += SNAKE_SIZE;
+	} else if (direction == 3) {
+		snakePos[0].y += SNAKE_SIZE;
+	} else if (direction == 4) {
+		snakePos[0].x -= SNAKE_SIZE;
+	}
+}
+
+// draws the food at the x and y if the food status is 1
+function drawFood() {
+	// checks to make sure food status is 1, then draws rectangle for food
+	if (foodPos.status == 1) {
+		ctx.fillStyle = 'yellow';
+		ctx.fillRect(foodPos.x, foodPos.y, SNAKE_SIZE, SNAKE_SIZE);
+	} else {
+		// if food status is 0, calls the random location function for a new x and y, sets status to 1 and calls itself
+		randomLocation()
+		foodPos.status = 1;
+		drawFood();
+	}
+}
+
+// sets the food x and y to a random location on the game board
+function randomLocation() {
+	// random integers between top and bottom border and the other between the left and right border, borderLeft is both left and top
+	randx = Math.floor(Math.random() * (canvas.width - (borderRight + SNAKE_SIZE))) + borderLeft;
+	randy = Math.floor(Math.random() * (canvas.height - (borderBottom + SNAKE_SIZE))) + borderLeft;
+	
+	// left over after randx mod snake size
+	leftOverX = randx % SNAKE_SIZE;
+	leftOverY = randy % SNAKE_SIZE;
+
+	// sets food x and food yto the random number minus the left over x and left over y
+	foodPos.x = randx - leftOverX;
+	foodPos.y = randy - leftOverY;
+
+	// checks to make sure the food x and y is not equal to a snake x and y, if it is, it calls itselfs and sets a new food x and y
+	for (var i = 0; i < length; i++) {
+		if (foodPos.x == snakePos[i].x && foodPos.y == snakePos[i].y) {
+			randomLocation();
+		}
+	}
+}
+
+// called every frame and checks if the snake has eaten the food
+function eatCheck() {
+	// checks if head x and y are equal to food x and y
+	if (snakePos[0].x == foodPos.x && snakePos[0].y == foodPos.y) {
+		// sets food status to 0 and increases length by given var increase
+		foodPos.status = 0;
+		length += INCREASE;
+		
+		// creates and empty 2nd snake
+		var copySnake = [];
+
+		// sets the copy snake equal to tbe current snake
+		for (var i = 0; i < length - INCREASE; i++) {
+			copySnake[i] = {x:snakePos[i].x,y:snakePos[i].y};
+		}
+		// adds the extra blocks to the end of the snake at food x and y, the x and ys of the blocks ahead of them get pushed down to them and they join the snake
+		for (var i = length - INCREASE; i < length; i++) {
+			copySnake[i] = {x:foodPos.x, y:foodPos.y};
+		}
+
+		// sets the snake equal to the new 2nd snake which is the updated snake
+		snakePos = copySnake;
+	}
+}
+
+</script>
+</html>
