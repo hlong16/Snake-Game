@@ -30,6 +30,7 @@ var highScore = 0;
 var paused = true;
 var check = false;
 var frameCheck = false;
+var score = 1;
 var borderBottom = SNAKE_SIZE * 2;
 var borderRight = SNAKE_SIZE * 2;
 var borderLeft = SNAKE_SIZE;
@@ -76,9 +77,9 @@ window.onload = function() {
 			moveSnake();
 		} else {
 			ctx.fillStyle = 'white';
-			if (length == 1 && highScore == 0 && check == false) {
+			if (snakePos.length == 1 && highScore == 0 && check == false) {
 				ctx.fillText("Hit space to start the game!", canvas.width / 2, canvas.height / 2);
-			} else if (highScore > 0 && length == 1 && check == false) {
+			} else if (highScore > 0 && snakePos.length == 1 && check == false) {
 				ctx.fillText("OOPS you lose!! Hit space to restart the game!", canvas.width / 2, canvas.height / 2);
 			} else if (check) {
 				ctx.fillText("The game is Paused. Hit space to keep going!", canvas.width / 2, canvas.height / 2);
@@ -124,6 +125,9 @@ function keyPressed(e) {
 	// if key pressed is space then it will either unpause or pause the game depending on its current state, variable check is to make sure the right message is displayed
 	if (e.keyCode == "32") {
 		if (paused) {
+			if (check == false) {
+				score = 1;
+			}
 			paused = false;
 			check = false;
 		} else {
@@ -172,7 +176,7 @@ function drawBackground() {
 	ctx.fillStyle = 'white';
 
 	// displays length or “score” in the middle of bottom border
-	ctx.fillText(length, canvas.width / 2, canvas.height - (borderBottom / 2));
+	ctx.fillText(score, canvas.width / 2, canvas.height - (borderBottom / 2));
 
 	// displays the highscore 1/4 of the way across the bottom border
 	ctx.fillText(highScore, canvas.width / 4, canvas.height - (borderBottom / 2));
@@ -217,9 +221,10 @@ function resetGame() {
 	// resets all game conditions to start new game
 	paused = true;
 	foodPos.status = 0;
+	score = length;
+	length = 1;
 	snakePos = [{x: 200, y:200}];
 	direction = 2;
-	length = 1;
 	
 }
 
@@ -285,6 +290,7 @@ function eatCheck() {
 		// sets food status to 0 and increases length by given var increase
 		foodPos.status = 0;
 		length += INCREASE;
+		score += INCREASE;
 		
 		// creates and empty 2nd snake
 		var copySnake = [];
