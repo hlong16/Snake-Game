@@ -67,6 +67,7 @@ window.onload = function() {
 	
 	// interval function that runs the game functions frames_per_second times per second
 	setInterval( function() {
+		canvas.width = canvas.width;
 		drawBackground();
 		drawSnake();
 		drawFood();
@@ -88,7 +89,6 @@ window.onload = function() {
 
 		// sets framecheck to false because we are moving to the next frame, this is in order to stop someone from giving to commands in the same frame
 		frameCheck = false;
-		canvas.width = canvas.width;
 	}, 1000 / FRAMES_PER_SECOND);
 	
 	// adds the key event listener that allows the user to input the directional commands
